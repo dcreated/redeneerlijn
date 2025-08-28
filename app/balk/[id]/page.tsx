@@ -84,7 +84,7 @@ export default function BalkDetail() {
               Terug naar redeneerlijn
             </Button>
           </Link>
-          <Link href="/kaarten" className="hidden md:block">
+          <Link href="https://experience.arcgis.com/experience/ebb6f6f9bd93403598e7a8821ac13b48/" className="hidden md:block" target="_blank">
             <Button
               variant="outline"
               className="flex items-center gap-2 bg-white text-[#1e4b7a] border-[#1e4b7a] hover:bg-[#1e4b7a] hover:text-white"
@@ -157,4 +157,3 @@ export default function BalkDetail() {
     </main>
   )
 }
-
