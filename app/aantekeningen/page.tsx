@@ -34,11 +34,16 @@ export default function Aantekeningen() {
     setAantekeningen(loadedAantekeningen)
   }, [])
 
+  // Functie voor Datum van de sessie
+  const sessiedatum = new Date().toLocaleDateString();
+  // Functie voor titel in de PDF
+  const titeltekst = `Aantekeningen Toepassen Redeneerlijn - ${sessiedatum}`;
+
   // Functie om PDF te exporteren
   const exportPDF = () => {
     const doc = new jsPDF()
     doc.setFontSize(18)
-    doc.text("Aantekeningen Toepassen Redeneerlijn", 20, 20)
+    doc.text(titeltekst, 20, 20)
 
     let y = 40
     balkenTitels.forEach((titel, index) => {
