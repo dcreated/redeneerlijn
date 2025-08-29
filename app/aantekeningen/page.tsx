@@ -38,7 +38,7 @@ export default function Aantekeningen() {
   const exportPDF = () => {
     const doc = new jsPDF()
     doc.setFontSize(18)
-    doc.text("Aantekeningen Toepassen redeneerlijn-${new Date().toLocaleDateString()}", 20, 20)
+    doc.text("Aantekeningen Toepassen redeneerlijn", 20, 20)
 
     let y = 40
     balkenTitels.forEach((titel, index) => {
