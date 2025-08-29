@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, FileDown } from "lucide-react"
+import jsPDF from "jspdf"
 
 // Dummy data voor de balken (alleen titels)
 const balkenTitels = [
@@ -33,10 +34,27 @@ export default function Aantekeningen() {
     setAantekeningen(loadedAantekeningen)
   }, [])
 
-  // Functie om PDF te exporteren (simulatie)
+  // Functie om PDF te exporteren
   const exportPDF = () => {
-    alert("PDF export functionaliteit zou hier de aantekeningen exporteren naar een PDF document.")
-    // In een echte implementatie zou hier jsPDF of een andere library gebruikt worden
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text("Toepassing redeneerlijn", 20, 20)
+
+    let y = 40
+    balkenTitels.forEach((titel, index) => {
+      const balkId = index + 1
+      const aantekening = aantekeningen[balkId] || ""
+      doc.setFontSize(14)
+      doc.text(`${balkId}. ${titel}`, 20, y)
+      y += 10
+      doc.setFontSize(12)
+      const textLines = doc.splitTextToSize(aantekening, 160)
+      doc.text(textLines, 20, y)
+      y += textLines.length * 7
+      y += 10
+    })
+
+    doc.save(`redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
   }
 
   return (
@@ -64,7 +82,7 @@ export default function Aantekeningen() {
 
             return (
               <div key={balkId} className="mb-8 pb-6 border-b border-gray-200 last:border-0">
-                <h2 className="text-xl font-semibold text-[#1e4b7a] mb-2">
+                <h2 className="text-xl font-semibold text-[#1e3d6b] mb-2">
                   {balkId}. {titel}
                 </h2>
                 {aantekening ? (
@@ -72,7 +90,7 @@ export default function Aantekeningen() {
                 ) : (
                   <div className="text-gray-500 italic">
                     Geen aantekeningen.{" "}
-                    <Link href={`/balk/${balkId}`} className="text-[#1e4b7a] underline">
+                    <Link href={`/balk/${balkId}`} className="text-[#1e3d6b] underline">
                       Voeg aantekeningen toe
                     </Link>
                   </div>
