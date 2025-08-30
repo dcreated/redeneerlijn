@@ -59,7 +59,7 @@ export default function Aantekeningen() {
       y += 10
     })
 
-    doc.save(`redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
+    doc.save(`aantekeningen-redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
   }
 
   return (
