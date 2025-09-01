@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Button, Textarea } from "@/components/ui/button"
 import { ArrowLeft, FileDown, ImageIcon } from "lucide-react"
 import jsPDF from "jspdf"
 
@@ -26,6 +26,7 @@ interface PastedImage {
 export default function Aantekeningen() {
   const [aantekeningen, setAantekeningen] = useState<{ [key: string]: string }>({})
   const [images, setImages] = useState<{ [key: string]: PastedImage[] }>({})
+  const [overigeOpmerkingen, setOverigeOpmerkingen] = useState("")
 
   // Laad alle aantekeningen en afbeeldingen uit localStorage
   useEffect(() => {
@@ -42,6 +43,11 @@ export default function Aantekeningen() {
       if (savedImages) {
         loadedImages[i] = JSON.parse(savedImages)
       }
+    }
+
+    const savedOverigeOpmerkingen = localStorage.getItem("overige-opmerkingen")
+    if (savedOverigeOpmerkingen) {
+      setOverigeOpmerkingen(savedOverigeOpmerkingen)
     }
 
     setAantekeningen(loadedAantekeningen)
@@ -106,7 +112,28 @@ export default function Aantekeningen() {
       y += 10
     }
 
+    // Voeg overige opmerkingen toe
+    if (overigeOpmerkingen) {
+      if (y > 200) {
+        doc.addPage()
+        y = 20
+      }
+
+      doc.setFontSize(14)
+      doc.text("Overige opmerkingen", 20, y)
+      y += 10
+      doc.setFontSize(12)
+      const overigeTextLines = doc.splitTextToSize(overigeOpmerkingen, 160)
+      doc.text(overigeTextLines, 20, y)
+      y += overigeTextLines.length * 7
+    }
+
     doc.save(`aantekeningen-redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
+  }
+
+  const handleOverigeOpmerkingenChange = (value: string) => {
+    setOverigeOpmerkingen(value)
+    localStorage.setItem("overige-opmerkingen", value)
   }
 
   return (
@@ -176,6 +203,20 @@ export default function Aantekeningen() {
               </div>
             )
           })}
+
+          {/* Overige opmerkingen sectie */}
+          <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold text-[#1e4b7a] mb-4">Overige opmerkingen</h2>
+            <Textarea
+              placeholder="Voeg hier eventuele overige opmerkingen toe..."
+              className="min-h-[120px] border-[#1e4b7a]/30 focus:border-[#1e4b7a]"
+              value={overigeOpmerkingen}
+              onChange={(e) => handleOverigeOpmerkingenChange(e.target.value)}
+            />
+            <p className="text-sm text-gray-500 mt-2">
+              Overige opmerkingen worden automatisch opgeslagen en meegenomen in de PDF export.
+            </p>
+          </div>
         </div>
       </div>
     </main>
