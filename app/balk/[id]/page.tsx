@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Map } from "lucide-react"
+import { ArrowLeft, Map, ImageIcon, X } from "lucide-react"
 
 // Dummy data voor de balken
 const balkenData = [
@@ -53,18 +55,31 @@ const balkenData = [
   },
 ]
 
+interface PastedImage {
+  id: string
+  data: string
+  name: string
+}
+
 export default function BalkDetail() {
   const params = useParams()
   const balkId = Number.parseInt(params.id as string)
   const balk = balkenData.find((b) => b.id === balkId) || balkenData[0]
 
   const [aantekening, setAantekening] = useState("")
+  const [images, setImages] = useState<PastedImage[]>([])
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Laad opgeslagen aantekeningen uit localStorage
+  // Laad opgeslagen aantekeningen en afbeeldingen uit localStorage
   useEffect(() => {
     const savedAantekening = localStorage.getItem(`aantekening-${balkId}`)
     if (savedAantekening) {
       setAantekening(savedAantekening)
+    }
+
+    const savedImages = localStorage.getItem(`images-${balkId}`)
+    if (savedImages) {
+      setImages(JSON.parse(savedImages))
     }
   }, [balkId])
 
@@ -72,6 +87,46 @@ export default function BalkDetail() {
   const handleAantekeningChange = (value: string) => {
     setAantekening(value)
     localStorage.setItem(`aantekening-${balkId}`, value)
+  }
+
+  // Sla afbeeldingen op in localStorage
+  const saveImages = (newImages: PastedImage[]) => {
+    setImages(newImages)
+    localStorage.setItem(`images-${balkId}`, JSON.stringify(newImages))
+  }
+
+  // Handle paste event voor afbeeldingen
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = (event) => {
+            const imageData = event.target?.result as string
+            const newImage: PastedImage = {
+              id: Date.now().toString(),
+              data: imageData,
+              name: `Schermafdruk ${new Date().toLocaleString()}`,
+            }
+            const newImages = [...images, newImage]
+            saveImages(newImages)
+          }
+          reader.readAsDataURL(file)
+        }
+      }
+    }
+  }
+
+  // Verwijder afbeelding
+  const removeImage = (imageId: string) => {
+    const newImages = images.filter((img) => img.id !== imageId)
+    saveImages(newImages)
   }
 
   return (
@@ -84,7 +139,11 @@ export default function BalkDetail() {
               Terug naar redeneerlijn
             </Button>
           </Link>
-          <Link href="https://experience.arcgis.com/experience/ebb6f6f9bd93403598e7a8821ac13b48/" className="hidden md:block" target="_blank">
+          <Link
+            href="https://experience.arcgis.com/experience/ebb6f6f9bd93403598e7a8821ac13b48/"
+            className="hidden md:block"
+            target="_blank"
+          >
             <Button
               variant="outline"
               className="flex items-center gap-2 bg-white text-[#1e4b7a] border-[#1e4b7a] hover:bg-[#1e4b7a] hover:text-white"
@@ -106,12 +165,49 @@ export default function BalkDetail() {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-bold text-[#1e4b7a] mb-4">Aantekeningen</h2>
             <Textarea
-              placeholder="Voeg hier je aantekeningen toe..."
+              ref={textareaRef}
+              placeholder="Voeg hier je aantekeningen toe... Je kunt ook schermafdrukken plakken met Ctrl+V"
               className="min-h-[200px] border-[#1e4b7a]/30 focus:border-[#1e4b7a]"
               value={aantekening}
               onChange={(e) => handleAantekeningChange(e.target.value)}
+              onPaste={handlePaste}
             />
-            <p className="text-sm text-gray-500 mt-2">Aantekeningen worden automatisch opgeslagen</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Aantekeningen worden automatisch opgeslagen. Plak schermafdrukken met Ctrl+V.
+            </p>
+
+            {/* Afbeeldingen weergeven */}
+            {images.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-[#1e4b7a] mb-3 flex items-center gap-2">
+                  <ImageIcon size={20} />
+                  Geplakte afbeeldingen
+                </h3>
+                <div className="space-y-4">
+                  {images.map((image) => (
+                    <div key={image.id} className="relative border rounded-lg p-3 bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm font-medium text-gray-700">{image.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeImage(image.id)}
+                          className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
+                      <img
+                        src={image.data || "/placeholder.svg"}
+                        alt={image.name}
+                        className="max-w-full h-auto rounded border"
+                        style={{ maxHeight: "300px" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
