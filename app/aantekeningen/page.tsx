@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Button, Textarea } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, FileDown, ImageIcon } from "lucide-react"
 import jsPDF from "jspdf"
 
@@ -45,13 +46,13 @@ export default function Aantekeningen() {
       }
     }
 
+    setAantekeningen(loadedAantekeningen)
+    setImages(loadedImages)
+
     const savedOverigeOpmerkingen = localStorage.getItem("overige-opmerkingen")
     if (savedOverigeOpmerkingen) {
       setOverigeOpmerkingen(savedOverigeOpmerkingen)
     }
-
-    setAantekeningen(loadedAantekeningen)
-    setImages(loadedImages)
   }, [])
 
   // Functie voor Datum van de sessie
@@ -205,8 +206,8 @@ export default function Aantekeningen() {
           })}
 
           {/* Overige opmerkingen sectie */}
-          <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold text-[#1e4b7a] mb-4">Overige opmerkingen</h2>
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h2 className="text-xl font-semibold text-[#1e4b7a] mb-4">Overige opmerkingen</h2>
             <Textarea
               placeholder="Voeg hier eventuele overige opmerkingen toe..."
               className="min-h-[120px] border-[#1e4b7a]/30 focus:border-[#1e4b7a]"
