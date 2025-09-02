@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, FileDown } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, FileDown, ImageIcon } from "lucide-react"
+import jsPDF from "jspdf"
 
 // Dummy data voor de balken (alleen titels)
 const balkenTitels = [
@@ -16,27 +18,123 @@ const balkenTitels = [
   "Weeg toekomstbestendigheid en effecten op brede welvaart",
 ]
 
+interface PastedImage {
+  id: string
+  data: string
+  name: string
+}
+
 export default function Aantekeningen() {
   const [aantekeningen, setAantekeningen] = useState<{ [key: string]: string }>({})
+  const [images, setImages] = useState<{ [key: string]: PastedImage[] }>({})
+  const [overigeOpmerkingen, setOverigeOpmerkingen] = useState("")
 
-  // Laad alle aantekeningen uit localStorage
+  // Laad alle aantekeningen en afbeeldingen uit localStorage
   useEffect(() => {
     const loadedAantekeningen: { [key: string]: string } = {}
+    const loadedImages: { [key: string]: PastedImage[] } = {}
 
     for (let i = 1; i <= 7; i++) {
       const aantekening = localStorage.getItem(`aantekening-${i}`)
       if (aantekening) {
         loadedAantekeningen[i] = aantekening
       }
+
+      const savedImages = localStorage.getItem(`images-${i}`)
+      if (savedImages) {
+        loadedImages[i] = JSON.parse(savedImages)
+      }
     }
 
     setAantekeningen(loadedAantekeningen)
+    setImages(loadedImages)
+
+    const savedOverigeOpmerkingen = localStorage.getItem("overige-opmerkingen")
+    if (savedOverigeOpmerkingen) {
+      setOverigeOpmerkingen(savedOverigeOpmerkingen)
+    }
   }, [])
 
-  // Functie om PDF te exporteren (simulatie)
-  const exportPDF = () => {
-    alert("PDF export functionaliteit zou hier de aantekeningen exporteren naar een PDF document.")
-    // In een echte implementatie zou hier jsPDF of een andere library gebruikt worden
+  // Functie voor Datum van de sessie
+  const sessiedatum = new Date().toLocaleDateString()
+  // Functie voor titel in de PDF
+  const titeltekst = `Aantekeningen Toepassen Redeneerlijn - ${sessiedatum}`
+
+  // Functie om PDF te exporteren
+  const exportPDF = async () => {
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text(titeltekst, 20, 20)
+
+    let y = 40
+
+    for (let index = 0; index < balkenTitels.length; index++) {
+      const titel = balkenTitels[index]
+      const balkId = index + 1
+      const aantekening = aantekeningen[balkId] || ""
+      const balkImages = images[balkId] || []
+
+      // Check if we need a new page
+      if (y > 250) {
+        doc.addPage()
+        y = 20
+      }
+
+      doc.setFontSize(14)
+      doc.text(`${balkId}. ${titel}`, 20, y)
+      y += 10
+
+      if (aantekening) {
+        doc.setFontSize(12)
+        const textLines = doc.splitTextToSize(aantekening, 160)
+        doc.text(textLines, 20, y)
+        y += textLines.length * 7
+      }
+
+      // Voeg afbeeldingen toe aan PDF
+      for (const image of balkImages) {
+        if (y > 200) {
+          doc.addPage()
+          y = 20
+        }
+
+        try {
+          // Voeg afbeelding toe aan PDF
+          doc.addImage(image.data, "JPEG", 20, y, 160, 100)
+          y += 110
+          doc.setFontSize(10)
+          doc.text(image.name, 20, y)
+          y += 10
+        } catch (error) {
+          console.error("Error adding image to PDF:", error)
+        }
+      }
+
+      y += 10
+    }
+
+    // Voeg overige opmerkingen toe
+    if (overigeOpmerkingen) {
+      if (y > 200) {
+        doc.addPage()
+        y = 20
+      }
+
+      doc.setFontSize(14)
+      doc.text("Overige opmerkingen", 20, y)
+      y += 10
+      doc.setFontSize(12)
+      const overigeTextLines = doc.splitTextToSize(overigeOpmerkingen, 160)
+      doc.text(overigeTextLines, 20, y)
+      y += overigeTextLines.length * 7
+    }
+
+    doc.save(`aantekeningen-redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
+  }
+
+  const handleOverigeOpmerkingenChange = (value: string) => {
+    setOverigeOpmerkingen(value)
+    localStorage.setItem("overige-opmerkingen", value)
   }
 
   return (
@@ -61,6 +159,7 @@ export default function Aantekeningen() {
           {balkenTitels.map((titel, index) => {
             const balkId = index + 1
             const aantekening = aantekeningen[balkId] || ""
+            const balkImages = images[balkId] || []
 
             return (
               <div key={balkId} className="mb-8 pb-6 border-b border-gray-200 last:border-0">
@@ -68,18 +167,57 @@ export default function Aantekeningen() {
                   {balkId}. {titel}
                 </h2>
                 {aantekening ? (
-                  <div className="whitespace-pre-wrap">{aantekening}</div>
+                  <div className="whitespace-pre-wrap mb-4">{aantekening}</div>
                 ) : (
-                  <div className="text-gray-500 italic">
+                  <div className="text-gray-500 italic mb-4">
                     Geen aantekeningen.{" "}
                     <Link href={`/balk/${balkId}`} className="text-[#1e4b7a] underline">
                       Voeg aantekeningen toe
                     </Link>
                   </div>
                 )}
+
+                {/* Toon afbeeldingen */}
+                {balkImages.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-[#1e4b7a] mb-3 flex items-center gap-2">
+                      <ImageIcon size={18} />
+                      Geplakte afbeeldingen ({balkImages.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {balkImages.map((image) => (
+                        <div key={image.id} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="mb-2">
+                            <span className="text-sm font-medium text-gray-700">{image.name}</span>
+                          </div>
+                          <img
+                            src={image.data || "/placeholder.svg"}
+                            alt={image.name}
+                            className="max-w-full h-auto rounded border"
+                            style={{ maxHeight: "200px" }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
+
+          {/* Overige opmerkingen sectie */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h2 className="text-xl font-semibold text-[#1e4b7a] mb-4">Overige opmerkingen</h2>
+            <Textarea
+              placeholder="Voeg hier eventuele overige opmerkingen toe..."
+              className="min-h-[120px] border-[#1e4b7a]/30 focus:border-[#1e4b7a]"
+              value={overigeOpmerkingen}
+              onChange={(e) => handleOverigeOpmerkingenChange(e.target.value)}
+            />
+            <p className="text-sm text-gray-500 mt-2">
+              Overige opmerkingen worden automatisch opgeslagen en meegenomen in de PDF export.
+            </p>
+          </div>
         </div>
       </div>
     </main>
