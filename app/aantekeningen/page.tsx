@@ -63,10 +63,26 @@ export default function Aantekeningen() {
   // Functie om PDF te exporteren
   const exportPDF = async () => {
     const doc = new jsPDF()
-    doc.setFontSize(18)
-    doc.text(titeltekst, 20, 20)
 
-    let y = 40
+    // PDF marges definiëren
+    const margins = {
+      left: 20,
+      right: 20,
+      top: 20,
+      bottom: 20,
+    }
+
+    // Beschikbare breedte en hoogte berekenen
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const usableWidth = pageWidth - margins.left - margins.right
+    const usableHeight = pageHeight - margins.top - margins.bottom
+
+    // Titel toevoegen
+    doc.setFontSize(18)
+    doc.text(titeltekst, margins.left, margins.top + 10)
+
+    let y = margins.top + 30
 
     for (let index = 0; index < balkenTitels.length; index++) {
       const titel = balkenTitels[index]
@@ -74,37 +90,51 @@ export default function Aantekeningen() {
       const aantekening = aantekeningen[balkId] || ""
       const balkImages = images[balkId] || []
 
-      // Check if we need a new page
-      if (y > 250) {
+      // Check if we need a new page voor de titel
+      if (y > pageHeight - margins.bottom - 40) {
         doc.addPage()
-        y = 20
+        y = margins.top
       }
 
+      // Balk titel toevoegen
       doc.setFontSize(14)
-      doc.text(`${balkId}. ${titel}`, 20, y)
-      y += 10
+      const titelLines = doc.splitTextToSize(`${balkId}. ${titel}`, usableWidth)
+      doc.text(titelLines, margins.left, y)
+      y += titelLines.length * 7 + 5
 
+      // Aantekening toevoegen als deze bestaat
       if (aantekening) {
         doc.setFontSize(12)
-        const textLines = doc.splitTextToSize(aantekening, 160)
-        doc.text(textLines, 20, y)
-        y += textLines.length * 7
+        const textLines = doc.splitTextToSize(aantekening, usableWidth)
+
+        // Check if text fits on current page
+        if (y + textLines.length * 7 > pageHeight - margins.bottom) {
+          doc.addPage()
+          y = margins.top
+        }
+
+        doc.text(textLines, margins.left, y)
+        y += textLines.length * 7 + 10
       }
 
-      // Voeg afbeeldingen toe aan PDF
+      // Afbeeldingen toevoegen
       for (const image of balkImages) {
-        if (y > 200) {
+        const imageHeight = 80
+        const imageWidth = Math.min(usableWidth, 120)
+
+        // Check if image fits on current page
+        if (y + imageHeight + 20 > pageHeight - margins.bottom) {
           doc.addPage()
-          y = 20
+          y = margins.top
         }
 
         try {
           // Voeg afbeelding toe aan PDF
-          doc.addImage(image.data, "JPEG", 20, y, 160, 100)
-          y += 110
+          doc.addImage(image.data, "JPEG", margins.left, y, imageWidth, imageHeight)
+          y += imageHeight + 5
           doc.setFontSize(10)
-          doc.text(image.name, 20, y)
-          y += 10
+          doc.text(image.name, margins.left, y)
+          y += 15
         } catch (error) {
           console.error("Error adding image to PDF:", error)
         }
@@ -115,18 +145,31 @@ export default function Aantekeningen() {
 
     // Voeg overige opmerkingen toe
     if (overigeOpmerkingen) {
-      if (y > 200) {
+      // Check if we need a new page
+      if (y > pageHeight - margins.bottom - 60) {
         doc.addPage()
-        y = 20
+        y = margins.top
       }
 
       doc.setFontSize(14)
-      doc.text("Overige opmerkingen", 20, y)
-      y += 10
+      doc.text("Overige opmerkingen", margins.left, y)
+      y += 15
+
       doc.setFontSize(12)
-      const overigeTextLines = doc.splitTextToSize(overigeOpmerkingen, 160)
-      doc.text(overigeTextLines, 20, y)
-      y += overigeTextLines.length * 7
+      const overigeTextLines = doc.splitTextToSize(overigeOpmerkingen, usableWidth)
+
+      // Check if text fits on current page
+      if (y + overigeTextLines.length * 7 > pageHeight - margins.bottom) {
+        doc.addPage()
+        y = margins.top
+        // Herhaal de titel op de nieuwe pagina
+        doc.setFontSize(14)
+        doc.text("Overige opmerkingen (vervolg)", margins.left, y)
+        y += 15
+        doc.setFontSize(12)
+      }
+
+      doc.text(overigeTextLines, margins.left, y)
     }
 
     doc.save(`aantekeningen-redeneerlijn-${new Date().toLocaleDateString()}.pdf`)
