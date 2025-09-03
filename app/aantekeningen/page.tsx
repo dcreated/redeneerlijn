@@ -63,7 +63,6 @@ export default function Aantekeningen() {
   // Functie om PDF te exporteren
   const exportPDF = async () => {
     const doc = new jsPDF()
-    const marge = 20; // 20 mm aan elke kant
     doc.setFontSize(18)
     doc.text(titeltekst, 20, 20)
 
