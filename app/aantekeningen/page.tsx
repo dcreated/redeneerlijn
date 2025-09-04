@@ -209,16 +209,19 @@ export default function Aantekeningen() {
                 <h2 className="text-xl font-semibold text-[#1e4b7a] mb-2">
                   {balkId}. {titel}
                 </h2>
+
                 {aantekening ? (
                   <div className="whitespace-pre-wrap mb-4">{aantekening}</div>
                 ) : (
-                  <div className="text-gray-500 italic mb-4">
-                    Geen aantekeningen.{" "}
-                    <Link href={`/balk/${balkId}`} className="text-[#1e4b7a] underline">
-                      Voeg aantekeningen toe
-                    </Link>
-                  </div>
+                  <div className="text-gray-500 italic mb-4">Geen aantekeningen.</div>
                 )}
+
+                {/* Link om aantekeningen te wijzigen - niet in PDF export */}
+                <div className="mb-4">
+                  <Link href={`/balk/${balkId}`} className="text-[#1e4b7a] underline text-sm">
+                    Wijzig aantekeningen
+                  </Link>
+                </div>
 
                 {/* Toon afbeeldingen */}
                 {balkImages.length > 0 && (
